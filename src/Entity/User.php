@@ -2,8 +2,10 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Repository\UserRepository;
@@ -18,27 +20,51 @@ use Symfony\Component\Serializer\Annotation\SerializedName;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ApiResource(
-    operations: [
+    operations: array(
         new GetCollection(
             uriTemplate: '/users',
-            normalizationContext: ['groups' => 'users.read']
+            normalizationContext: array('groups' => 'users.read')
         ),
         new Get(
             uriTemplate: '/user/{id}',
-            normalizationContext: ['groups' => 'user.read']
+            normalizationContext: array('groups' => 'user.read')
         ),
         new Post(
             uriTemplate: '/inscription',
-            denormalizationContext: ['groups' => 'user.write'],
+            denormalizationContext: array('groups' => 'user.write'),
             processor: UserProcessor::class
         ),
         new Get(
             uriTemplate: '/profile/me',
-            normalizationContext: ['groups' => 'user.profile.me'],
+            normalizationContext: array('groups' => 'user.profile.me'),
             security: "object == user",
             provider: UserStateProvider::class
+        ),
+        new Patch(
+            uriTemplate: '/userProfileEdit',
+            denormalizationContext: array('groups' => 'user.profile.edit'),
+            security: "(is_granted('ROLE_USER') and object == user) or (is_granted('ROLE_ADMIN') and object == user)",
+            provider: UserStateProvider::class,
+            processor: UserProcessor::class
+        ),
+        new Patch(
+            uriTemplate: '/userGroupeEdit',
+            denormalizationContext: array('groups' => 'user.groupe.edit'),
+            security: "(is_granted('ROLE_USER') and object == user) or (is_granted('ROLE_ADMIN') and object == user)",
+            provider: UserStateProvider::class,
+            processor: UserProcessor::class
+        ),
+        new Patch(
+            uriTemplate: '/profileEdit/{id}',
+            denormalizationContext: array('groups' => 'users.profile.edit'),
+            security: "is_granted('ROLE_ADMIN')",
+            processor: UserProcessor::class
+        ),
+        new Delete(
+            uriTemplate: '/delete-user/{id}',
+            security: "is_granted('ROLE_ADMIN')",
         )
-    ]
+    )
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -48,10 +74,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['user.read','user.write','user.profile.me'])]
+    #[Groups(['user.read','user.write','user.profile.me','users.profile.edit','user.profile.edit'])]
     private ?string $email = null;
 
     #[ORM\Column]
+    #[Groups(['users.profile.edit'])]
     private array $roles = [];
 
     /**
@@ -61,11 +88,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['users.read','users_groupes.read','user.read','user.write','user.profile.me'])]
+    #[Groups(['users.read','users_groupes.read','user.read','user.write','user.profile.me',
+        'users.profile.edit','user.profile.edit'])]
     private ?string $firstname = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['users.read','users_groupes.read','user.read','user.write','user.profile.me'])]
+    #[Groups(['users.read','users_groupes.read','user.read','user.write','user.profile.me',
+        'users.profile.edit','user.profile.edit'])]
     private ?string $lastname = null;
 
     #[ORM\Column]
@@ -75,11 +104,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeImmutable $updated_at = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['user.read','user.write','user.profile.me'])]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['user.read','user.write','user.profile.me','users.profile.edit','user.groupe.edit'])]
     private ?Groupe $groupe = null;
 
-    #[Groups(['user.write'])]
+    #[Groups(['user.write','users.profile.edit','user.profile.edit','user.profile.edit'])]
     #[SerializedName('password')]
     private ?string $plainPassword = null;
 

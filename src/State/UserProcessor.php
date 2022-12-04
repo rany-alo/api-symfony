@@ -18,12 +18,16 @@ class UserProcessor implements ProcessorInterface
         if(false === $data instanceof User) {
             return;
         }
-        if($operation->getName() === "post") {
-            $data->setUpdatedAt(new \DateTimeImmutable());
-        }
-        $data->setPassword($this->userPasswordHasher->hashPassword($data, $data->getPlainPassword()));
-        $data->setCreatedAt(new \DateTimeImmutable());
         $data->setUpdatedAt(new \DateTimeImmutable());
+        if($operation->getName() == "_api_/profileEdit/{id}_patch" or
+            $operation->getName() == "_api_/userProfileEdit/_patch"){
+            $data->setCreatedAt($data->getCreatedAt());
+        }
+        else {
+            $data->setCreatedAt(new \DateTimeImmutable());
+        }
+
+        $data->setPassword($this->userPasswordHasher->hashPassword($data, $data->getPlainPassword()));
         $this->entityManager->persist($data);
         $this->entityManager->flush();
     }
